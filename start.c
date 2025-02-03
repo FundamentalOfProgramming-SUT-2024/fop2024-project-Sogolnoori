@@ -92,23 +92,6 @@ int main(){
     return 0;
 }
 
-/*
-struct game{
-    int current_level, current_x, current_y;
-    struct floor* floors[6];
-    int Vis;
-    int golds;
-    int hunger, health;
-    int food;
-
-    int current_w;
-    int mace, sword;
-    int dagger, wand, arrow;
-
-    int health_s, speed_s, damage_s;
-}
-*/
-
 void read_game(struct user* user, FILE *fptr){
     user -> game = (struct game *) malloc(sizeof(struct game));
     struct game* game = user -> game;
@@ -159,7 +142,7 @@ void read_users(){
         fscanf(fptr, "%d", &(users[i] -> games_played));
         fscanf(fptr, "%d", &(users[i] -> open_game));
         if(users[i] -> open_game){
-            //read_game(users[i], fptr);
+            read_game(users[i], fptr);
         }
     }
     return;
@@ -180,7 +163,7 @@ void write_users(){
         fprintf(fptr, "%d ", users[i] -> games_played);
         fprintf(fptr, "%d\n", users[i] -> open_game);
         if(users[i] -> open_game){
-            //write_game(users[i], fptr);
+            write_game(users[i], fptr);
         }
     }
     fclose(fptr);
@@ -795,11 +778,6 @@ void spellize(struct game* game){
     return;
 }
 
-struct monster{
-    int x, y;
-    int act, type;
-    int health;
-};
 void monsterize(struct floor* floor, int T){
     floor -> monster_count = T;
     floor -> monsters = (struct monster**) malloc(T * sizeof(struct monster*));
@@ -807,6 +785,8 @@ void monsterize(struct floor* floor, int T){
         floor -> monsters[m] = (struct monster*) malloc(sizeof(struct monster));
         struct monster* monster = floor -> monsters[m];
         monster -> type = rand() % 5;
+        monster -> act = 0;
+        monster -> health = 5 * (monster -> type + 1) + (monster -> type == 4 ? 5 : 0);
         while(1){
             int x = rand() % (ROW - 1), y = rand() % (COL - 1);
             if(floor -> map[x][y] != '.') continue;
@@ -863,7 +843,7 @@ struct floor* new_floor(){
     floor -> vis = (int **) malloc((ROW + 10) * sizeof(int *));
     for (int i = 0; i < ROW; i ++){
         floor -> vis[i] = (int *) malloc((COL + 10) * sizeof(int));
-        for (int j = 0; j < COL; j ++) floor -> vis[i][j] = 1;
+        for (int j = 0; j < COL; j ++) floor -> vis[i][j] = 0;
     }
     ////STAIRS
     floor -> stair_x = floor -> rooms[1] -> x0 + rand() % 6 + 1;
@@ -926,6 +906,8 @@ struct floor* new_treasure_floor(){
     trapize(floor, 30);
     ////FOODIZE
     foodize(floor, 10);
+    ///MONSTERIZE
+    monsterize(floor, 8);
     return floor;
 }
 
@@ -979,21 +961,19 @@ void game_menu(){
         else if(get == '\n'){
             if(cr == 0){
                 struct game *game = new_game();
+                int res = game_play(game);
                 if(signed_in){
                     current_user -> game = game;
                     current_user -> open_game = 1;
+                    if(res != -1){
+                        current_user -> games_played ++;
+                        current_user -> open_game = 0;
+                    }
+                    if(res == 1){
+                        current_user -> golds += game -> golds;
+                        current_user -> total_score += 0;//////
+                    }
                 }
-                int res = game_play(game);
-                if(res != -1){
-                    current_user -> games_played ++;
-                    current_user -> open_game = 0;
-                }
-                if(res == 1){
-                    current_user -> golds += game -> golds;
-                    current_user -> total_score += 0;
-                }
-                ////////moonde hanooz
-                return;
             } 
             if(cr == 1){
                 if(signed_in == 0 || current_user -> open_game == 0){
@@ -1014,14 +994,12 @@ void game_menu(){
                 }
                 if(res == 1){
                     current_user -> golds += game -> golds;
-                    current_user -> total_score += 0;
+                    current_user -> total_score += 0;//////
                 }
-                /////////moondeeee
             }
             if(cr == 2){
                 game_menu();
             }
-            return;
         }
         else if(get == 27){
             main_menu();

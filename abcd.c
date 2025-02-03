@@ -14,7 +14,8 @@ const char* Ugold_medal = "\U0001F947";
 const char* Usecond_medal = "\U0001F948";
 const char* Uthird_medal = "\U0001F949";
 const char* Umoney = "\U0001F4B0";
-const char* Ugold = "\U0001F538";
+const char* Ugold = "\u25c7";
+const char* Ubgold = "\u25CB";
 const char* Umorgh = "🍗";
 const char* Usword = "🗡";
 const char* Udagger = "𓌜";
@@ -52,7 +53,7 @@ struct floor{
 /// T treasure
 /// d w a s weapons
 /// H S D spells
-/// D F N S U  monsters// no need?
+/// D F G S U  monsters// no need?
 
 struct game{
     int current_level, current_x, current_y;

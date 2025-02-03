@@ -236,11 +236,28 @@ void weapon_menu(struct game* game){
     }
 }
 
-int treasure_room(struct game* game){
+void draw_monsters(struct game* game){
+    int level = game -> current_level, x = game -> current_x, y = game -> current_y;
+    struct floor *floor = game -> floors[level];
+    char mons[10] = {'D', 'F', 'G', 'S', 'U'};
+    for (int m = 0; m < floor -> monster_count; m ++){
+        struct monster* monster = floor -> monsters[m];
+        int x = monster -> x, y = monster -> y;
+        if(!floor -> vis[x][y]) continue;
+        mvprintw(x, y, "M");
+    }
+    return;
+}
+
+int game_play_t(struct game* game){
     game -> current_level = 5;
     game -> current_x = ROW / 2;
     game -> current_y = COL / 2;
     while(1){
+        if(game -> health <= 0){
+            //end_game();
+            return 0;
+        }
         clear();
         noecho();
         char **to = draw(game);
@@ -307,19 +324,24 @@ int game_play(struct game* game){
     /////]
     update(game);
     while (1){
+        if(game -> health <= 0){
+            //end_game();
+            return 0;
+        }
         clear();
         noecho();
         char **to = draw(game);
         for (int i = 0; i < ROW; i ++){
             for (int j = 0; j < COL; j ++){
+                mvprintw(i, j, "%c", to[i][j]);
                 if(to[i][j] == 'g'){
                     attron(COLOR_PAIR(1));
-                    mvprintw(i, j, "\u25c7");
+                    mvprintw(i, j, Ugold);
                     attroff(COLOR_PAIR(1));
                 }
                 else if(to[i][j] == 'G'){
                     attron(COLOR_PAIR(1));
-                    mvprintw(i, j, "\u25CB");
+                    mvprintw(i, j, Ubgold);
                     attroff(COLOR_PAIR(1));
                 }
                 else if(to[i][j] == '@'){
@@ -327,9 +349,9 @@ int game_play(struct game* game){
                     mvprintw(i, j, "@");
                     attroff(COLOR_PAIR(4));
                 }
-                else mvprintw(i, j, "%c", to[i][j]);
             }
         }
+        draw_monsters(game);
         for (int i = 0; i < ROW; i ++){
             for (int j = 0; j < COL; j ++){
                 if(to[i][j] == 'f'){
@@ -356,7 +378,7 @@ int game_play(struct game* game){
         if(game -> Vis) continue;
         //// KEYS
         if(e == '~'){
-            return treasure_room(game);
+            return game_play_t(game);
         }
         if(e == 'E'){
             food_menu(game);
@@ -369,7 +391,7 @@ int game_play(struct game* game){
             game -> current_w = -1;
         }
         if(e == 'T' && game -> floors[game -> current_level] -> map[game -> current_x][game -> current_y] == 'T'){
-            return treasure_room(game);
+            return game_play_t(game);
         }
         if(e == 't'){
             get_weapon(game);
