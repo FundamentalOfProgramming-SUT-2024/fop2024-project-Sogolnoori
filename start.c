@@ -1,7 +1,5 @@
 #include <ncurses.h>
 #include <locale.h>
-//#include <SDL2/SDL.h>
-//#include <SDL2/SDL_mixer.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,8 +17,12 @@ struct user{
     struct game *game;
 };
 
+void define_colors();
 void read_users();
 void write_users();
+void read_game(struct user*, FILE *);
+void write_game(struct user*, FILE*);
+
 
 void main_menu();
 void menu_border();
@@ -45,34 +47,20 @@ void game_menu();
   int floor_check(struct floor*);
   void draw_corridor(char **, int, int);
 
-/////
 
 int N = 0;
 int signed_in = 0;
 struct user* users[2000], *current_user;
 
+
 int main(){
-    ////EMOJY
     setlocale(LC_ALL,"");
-    ///MUSIC
-    //Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
     srand(time(NULL));
     initscr();
     curs_set(0);
     keypad(stdscr, TRUE);
     start_color();
-    init_pair(1, 220, COLOR_BLACK); //Gold 220
-    init_pair(2, 248, COLOR_BLACK); //Silver 248
-    init_pair(3, 131, COLOR_BLACK); //Bronze! 131
-    init_pair(4, 117, COLOR_BLACK); //Blue
-    init_pair(5, COLOR_BLACK, COLOR_WHITE); //inwhite
-    init_pair(6, COLOR_BLACK, COLOR_RED); //inred
-    // for (int i = 0; i < 400; i ++){
-    //     init_pair(i + 1, i, COLOR_BLACK);
-    //     attron(COLOR_PAIR(i + 1));
-    //     mvprintw(i / 25, i % 25 * 4, "%d", i);
-    // }
-    // getch();
+    define_colors();
 
     // while(1){
     //     for (int i = 0; i < 10; i ++){
@@ -80,16 +68,40 @@ int main(){
     //             mvprintw(i + 10, j + 10, ".");
     //         }
     //     }
-    //     mvprintw(15, 15, "🗡𓌜");
+    //     mvprintw(15, 15, "🥩");
     //     getch();
     // }
 
-    ///// 🏆
+    ///// 🏆  🏹
     read_users();
     main_menu();
     endwin();
     write_users();
     return 0;
+}
+
+void define_colors(){
+    init_pair(1, 220, COLOR_BLACK); //Gold 220
+    init_pair(2, 248, COLOR_BLACK); //Silver 248
+    init_pair(3, 131, COLOR_BLACK); //Bronze! 131
+    init_pair(4, 147, COLOR_BLACK); //light purple
+    init_pair(5, COLOR_BLACK, COLOR_WHITE); //inwhite
+    init_pair(6, COLOR_BLACK, COLOR_RED); //inred
+    init_pair(7, COLOR_GREEN, COLOR_BLACK);//green
+    init_pair(8, 128, COLOR_BLACK); //purple
+    init_pair(9, 227, COLOR_BLACK); //yellow
+    init_pair(10, 229, COLOR_BLACK); //melo yellow
+    init_pair(11, 52, COLOR_BLACK); //black gold
+
+    init_pair(12, 39, COLOR_BLACK); //Blue
+    init_pair(13, 23, COLOR_BLACK); //green
+    init_pair(14, 99, COLOR_BLACK); //purple
+
+    init_pair(20, 117, COLOR_BLACK); //Blue
+    init_pair(21, 161, COLOR_BLACK); //red
+    init_pair(22, 49, COLOR_BLACK); //green
+
+    return;
 }
 
 void read_game(struct user* user, FILE *fptr){
@@ -99,30 +111,131 @@ void read_game(struct user* user, FILE *fptr){
     fscanf(fptr, "%d", &(game -> current_level));
     fscanf(fptr, "%d %d", &(game -> current_x), &(game -> current_y));
     fscanf(fptr, "%d", &(game -> Vis));
-    fscanf(fptr, "%d", &(game -> golds));
+    fscanf(fptr, "%d %d", &(game -> golds), &(game -> score));
     fscanf(fptr, "%d %d", &(game -> hunger), &(game -> health));
-    fscanf(fptr, "%d", &(game -> food));
+    fscanf(fptr, "%d %d %d", &(game -> food), &(game -> gfood), &(game -> mfood));
     fscanf(fptr, "%d", &(game -> current_w));
     fscanf(fptr, "%d %d", &(game -> mace), &(game -> sword));
     fscanf(fptr, "%d %d %d", &(game -> dagger), &(game -> wand), &(game -> arrow));
     fscanf(fptr, "%d %d %d", &(game -> health_s), &(game -> speed_s), &(game -> damage_s));
+    for (int i = 0; i < 6; i ++){
+        game -> floors[i] = (struct floor *) malloc(sizeof(struct floor));
+        struct floor *floor = game -> floors[i];
+        fscanf(fptr, "%d", &(floor -> room_count));
+        fscanf(fptr, "%d %d", &(floor -> stair_x), &(floor -> stair_y));
+        ///rooms
+        floor -> rooms = (struct Room **) malloc(floor -> room_count * sizeof(struct Room *));
+        for (int r = 0; r < floor -> room_count; r ++){
+            floor -> rooms[r] = (struct Room *) malloc(sizeof(struct Room));
+            struct Room* room = floor -> rooms[r];
+            fscanf(fptr, "%d %d %d %d", &(room -> x0), &(room -> y0), &(room -> x1), &(room -> y1));
+        }
+        ///mp
+        floor -> mp = (char **) malloc((ROW + 10) * sizeof(char *));
+        char trash[10000];
+        fgets(trash, 2000, fptr);
+        for (int i = 0; i < ROW; i ++){
+            floor -> mp[i] = (char *) malloc((COL + 10) * sizeof(char));
+                fgets(floor -> mp[i], 2000, fptr);
+        }
+        ///map
+        floor -> map = (char **) malloc((ROW + 10) * sizeof(char *));
+        for (int i = 0; i < ROW; i ++){
+            floor -> map[i] = (char *) malloc((COL + 10) * sizeof(char));
+            fgets(floor -> map[i], 2000, fptr);
+        }
+        ///vis
+        floor -> vis = (int **) malloc((ROW + 10) * sizeof(int *));
+        for (int i = 0; i < ROW; i ++){
+            floor -> vis[i] = (int *) malloc((COL + 10) * sizeof(int));
+            for (int j = 0; j < COL; j ++){
+                fscanf(fptr, "%d", &(floor -> vis[i][j]));
+            }
+        }
+        ///trap
+        floor -> trap = (int **) malloc((ROW + 10) * sizeof(int *));
+        for (int i = 0; i < ROW; i ++){
+            floor -> trap[i] = (int *) malloc((COL + 10) * sizeof(int));
+            for (int j = 0; j < COL; j ++){
+                fscanf(fptr, "%d", &(floor -> trap[i][j]));
+            }
+        }
+        ///monst
+        fscanf(fptr, "%d", &(floor -> monster_count));
+        floor -> monsters = (struct monster **) malloc(floor -> monster_count * sizeof(struct monster *));
+        for (int m = 0; m < floor -> monster_count; m ++){
+            floor -> monsters[m] = (struct monster *) malloc(sizeof(struct monster));
+            struct monster* monster = floor -> monsters[m];
+            fscanf(fptr, "%d %d", &(monster -> x), &(monster -> y));
+            fscanf(fptr, "%d %d %d", &(monster -> type), &(monster -> act), &(monster -> steps));
+            fscanf(fptr, "%d", &(monster -> health));
+
+        }
+    }
     return;
 }
 
 void write_game(struct user* user, FILE* fptr){
-    user -> game = (struct game *) malloc(sizeof(struct game));
     struct game* game = user -> game;
     ////
     fprintf(fptr, "%d ", game -> current_level);
     fprintf(fptr, "%d %d ", game -> current_x, game -> current_y);
     fprintf(fptr, "%d ", game -> Vis);
-    fprintf(fptr, "%d ", game -> golds);
+    fprintf(fptr, "%d %d ", game -> golds, game -> score);
     fprintf(fptr, "%d %d ", game -> hunger, game -> health);
-    fprintf(fptr, "%d ", game -> food);
+    fprintf(fptr, "%d %d %d ", game -> food, game -> gfood, game -> mfood);
     fprintf(fptr, "%d ", game -> current_w);
     fprintf(fptr, "%d %d ", game -> mace, game -> sword);
     fprintf(fptr, "%d %d %d ", game -> dagger, game -> wand, game -> arrow);
     fprintf(fptr, "%d %d %d ", game -> health_s, game -> speed_s, game -> damage_s);
+    for (int i = 0; i < 6; i ++){
+        struct floor *floor = game -> floors[i];
+        fprintf(fptr, "%d ", floor -> room_count);
+        fprintf(fptr, "%d %d\n", floor -> stair_x, floor -> stair_y);
+        ///rooms
+        for (int r = 0; r < floor -> room_count; r ++){
+            struct Room* room = floor -> rooms[r];
+            fprintf(fptr, "%d %d %d %d\n", room -> x0, room -> y0, room -> x1, room -> y1);
+        }
+        ///mp
+        for (int i = 0; i < ROW; i ++){
+            for (int j = 0; j < COL; j ++){
+                fprintf(fptr, "%c", floor -> mp[i][j]);
+            }
+            fprintf(fptr, "\n");
+        }
+        ///map
+        for (int i = 0; i < ROW; i ++){
+            for (int j = 0; j < COL; j ++){
+                fprintf(fptr, "%c", floor -> map[i][j]);
+            }
+            fprintf(fptr, "\n");
+        }
+        ///vis
+        for (int i = 0; i < ROW; i ++){
+            for (int j = 0; j < COL; j ++){
+                fprintf(fptr, "%d ", floor -> vis[i][j]);
+            }
+            fprintf(fptr, "\n");
+        }
+        ///trap
+        for (int i = 0; i < ROW; i ++){
+            for (int j = 0; j < COL; j ++){
+                fprintf(fptr, "%d ", floor -> trap[i][j]);
+            }
+            fprintf(fptr, "\n");
+        }
+        ///monst
+        fprintf(fptr, "%d\n", floor -> monster_count);
+        for (int m = 0; m < floor -> monster_count; m ++){
+            struct monster* monster = floor -> monsters[m];
+            fprintf(fptr, "%d %d ", monster -> x, monster -> y);
+            fprintf(fptr, "%d %d %d ", monster -> type, monster -> act, monster -> steps);
+            fprintf(fptr, "%d ", monster -> health);
+
+        }
+    }
+    fprintf(fptr, "\n\n");
     return;
 }
 
@@ -184,15 +297,17 @@ void menu_border(){
 }
 
 void main_menu(){
-    char options[6][20] = {"SIGN UP", "SIGN IN", "PROFILE", "SCOREBOARD", "LETS PLAY!!!"};
+    char options[6][20] = {"SIGN UP", "SIGN IN", "PROFILE", "SCOREBOARD", "MUSIC MENU", "PLAY"};
     int cr = 0;
+    noecho();
     while(1){
+        clear();
         menu_border();
         mvprintw(4, 5, "MAIN MENU:");
-        for (int i = 0; i < 5; i ++){
+        for (int i = 0; i < 6; i ++){
             mvprintw(5 + i, 7, options[i]);
         }
-        for (int i = 0; i < 5; i ++){
+        for (int i = 0; i < 6; i ++){
             if(cr == i){
                 attron(A_REVERSE);
                 mvprintw(5 + i, 7, options[i]);
@@ -201,17 +316,17 @@ void main_menu(){
         }
         move(0, 0);
         int get = getch();
-        if(get == KEY_UP) cr = (cr + 4) % 5;
-        else if(get == KEY_DOWN) cr = (cr + 1) % 5;
+        if(get == KEY_UP) cr = (cr + 5) % 6;
+        else if(get == KEY_DOWN) cr = (cr + 1) % 6;
         else if(get == '\n'){
             if(cr == 0) sign_up();
             if(cr == 1) sign_in();
             if(cr == 2) profile();
             if(cr == 3) scoreboard();
-            if(cr == 4) game_menu();
-            return;
+            if(cr == 4) music_menu();
+            if(cr == 5) game_menu();
         }
-        else if(get == 27) break;
+        else if(get == 'Q') break;
         refresh();
     }
     return;
@@ -255,6 +370,7 @@ void new_user(char user_name[], char email[], char password[]){
     strcpy(users[N] -> email, email);
     strcpy(users[N] -> password, password);
     users[N] -> total_score = 0;
+    users[N] -> golds = 0;
     users[N] -> open_game = 0;
     users[N] -> games_played = 0;
     users[N] -> birth = time(NULL);
@@ -263,6 +379,7 @@ void new_user(char user_name[], char email[], char password[]){
 }
 
 void sign_up(){
+    echo();
     clear();
     refresh();
     while(1){
@@ -278,7 +395,6 @@ void sign_up(){
             mvprintw(8, 6, "This Username is already used!!");
             mvprintw(LINES - 2, 6, "Press nay key to exit");
             getch();
-            main_menu();
             return;
         }
 
@@ -289,38 +405,84 @@ void sign_up(){
             mvprintw(11, 6, "email is not valid!!");
             mvprintw(LINES - 2, 6, "Press any key to exit");
             getch();
-            main_menu();
             return;
         }
 
-        mvprintw(11, 5, "Enter your password");
+        mvprintw(11, 5, "Enter your password or type \"random\" to get a random password");
         move(12, 6);
         getstr(password);
         int password_valid = password_validation(password);
-        if(password_valid){
+        if(strcmp(password, "random") == 0){
+            password[0] = 'A' + rand() % 26;
+            password[1] = '0' + rand() % 10;
+            password[2] = 'a' + rand() % 26;
+            password[3] = 'a' + rand() % 26;
+            password[4] = 'A' + rand() % 26;
+            password[5] = '0' + rand() % 10;
+            password[6] = 'A' + rand() % 26;
+            password[7] = '\0';
+        }
+        else if(password_valid){
             if(password_valid == 1) mvprintw(14, 6, "password must contain at least 7 characters!!");
             if(password_valid == 2) mvprintw(14, 6, "password must contain a number!!");
             if(password_valid == 3) mvprintw(14, 6, "password must contain a lower!!");
             if(password_valid == 4) mvprintw(14, 6, "password must contain an upper!!");
             mvprintw(LINES - 2, 4, "Press any key to exit");
             getch();
-            main_menu();
             return;
         }
-
         new_user(user_name, email, password);
         refresh();
         clear();
         menu_border();
         mvprintw(5, 10, "Hello %s :)", user_name);
+        mvprintw(7, 10, "Your password: %s", password);
         getch();
-        main_menu();
         break;
     }
     return;
 }
 
+void password_recovery_menu(){
+    while(1){
+        clear();
+        menu_border();
+        char user_name[100], email[100], password[100];
+        mvprintw(5, 5, "Enter your username");
+        move(6, 6);
+        getstr(user_name);
+        int id = -1;
+        for (int i = 0; i < N; i ++){
+            if(strcmp(user_name, users[i] -> user_name) == 0) id = i;
+        }
+        if(id == -1){
+            mvprintw(8, 5, "Username not found!");
+            mvprintw(LINES - 2, 4, "Press any key to exit");
+            getch();
+            return;
+        }
+        mvprintw(8, 5, "Enter your email");
+        move(9, 6);
+        getstr(email);
+        if(strcmp(users[id] -> email, email) != 0){
+            mvprintw(11, 6, "incorrect email!!");
+            mvprintw(LINES - 2, 6, "Press any key to exit");
+            getch();
+            return;
+        }
+        clear();
+        menu_border();
+        mvprintw(5, 5, "Here is your password:");
+        mvprintw(7, 8, "%s", users[id] -> password);
+        mvprintw(LINES - 2, 6, "Press any key to exit");
+        getch();
+        return;
+    }
+    return;
+}
+
 void sign_in(){
+    echo();
     clear();
     refresh();
     if(signed_in == 1){
@@ -328,7 +490,6 @@ void sign_in(){
         mvprintw(5, 5, "You are already signed in!");
         mvprintw(LINES - 2, 4, "Press any key to exit");
         getch();
-        main_menu();
         return;
     }
     while(1){
@@ -347,7 +508,6 @@ void sign_in(){
             mvprintw(8, 5, "Username not found!");
             mvprintw(LINES - 2, 4, "Press any key to exit");
             getch();
-            main_menu();
             return;
         }
         mvprintw(8, 5, "Enter your password %s:)", user_name);
@@ -355,9 +515,12 @@ void sign_in(){
         getstr(password);
         if(strcmp(users[id] -> password, password) != 0){
             mvprintw(11, 5, "Incorrect password!");
-            mvprintw(LINES - 2, 4, "Press any key to exit");
-            getch();
-            main_menu();
+            mvprintw(12, 5, "Forgot your password?  Press f to recover it");
+            mvprintw(LINES - 2, 4, "Press Enter to exit");
+            int get = getch();
+            if(get == 'f'){
+                password_recovery_menu();
+            }
             return;
         }
         signed_in = 1;
@@ -369,7 +532,6 @@ void sign_in(){
         mvprintw(LINES - 2, 4, "Press any key to exit");
         refresh();
         getch();
-        main_menu();
         return;
     }
     return;
@@ -385,22 +547,24 @@ void profile(){
             mvprintw(5, 5, "You are not signed in :(");
             mvprintw(LINES - 2, 4, "Press Enter to exit");
             getch();
-            main_menu();
             return;
         }
         mvprintw(5, 5, "ME:");
         mvprintw(6, 5, "My email:");
         mvprintw(7, 5, "My password:");
         mvprintw(8, 5, "My score:");
+        mvprintw(9, 5, "My golds:");
+        mvprintw(10, 5, "My experience:");
 
         mvprintw(5, 22, "%s", current_user -> user_name);
         mvprintw(6, 22, "%s", current_user -> email);
         mvprintw(7, 22, "%s", current_user -> password);
-        mvprintw(8, 22, "%s", current_user -> total_score);
+        mvprintw(8, 22, "%d", current_user -> total_score);
+        mvprintw(9, 22, "%d", current_user -> golds);
+        mvprintw(10, 22, "%d m", (time(0) - current_user -> birth) / 60);
         mvprintw(LINES - 2, 4, "Press Enter to exit");
         refresh();
         if(getch() == '\n'){
-            main_menu();
             return;
         }
     }
@@ -423,55 +587,56 @@ void scoreboard_sort_users(){
 void scoreboard(){
     clear();
     refresh();
-    char lines[5][100] = {"***   ***    ***   ***   ****  ****    ***      *     ***   ***",
-                          "*    *   *  *   *  *  *  *     *   *  *   *    * *    *  *  *  *",
-                          "***  *      *   *  ***   ****  ****   *   *   * * *   ***   *   *", 
-                          "  *  *   *  *   *  * *   *     *   *  *   *  *     *  * *   *  *", 
-                          "***   ***    ***   *  *  ****  ****    ***   *     *  *  *  ***"     };
+    int kx = (LINES - ROW) / 2, ky = (COLS - COL) / 2;
+    char lines[5][100] = {"***   ***    ***   ***   ****  ****    ***     **    ***   ****",
+                          "*    *   *  *   *  *  *  *     *   *  *   *   *  *   *  *  *   *",
+                          "***  *      *   *  ***   ****  ****   *   *  ******  ***   *   *", 
+                          "  *  *   *  *   *  * *   *     *   *  *   *  *    *  * *   *   *", 
+                          "***   ***    ***   *  *  ****  ****    ***   *    *  *  *  ****"     };
+
     char top[6][20] = {"Rank", "Username", "Score", "Golds", "games_played", "experience"};
     int loc[6] = {7, 16, 32, 48, 61, 78};
     int pg = 0;
     while(1){
         menu_border();
-        for (int i = 0; i < 5; i ++) mvprintw(i + 2, 15, lines[i]);
-        mvprintw(LINES - 2, 4, "Press Enter to exit");
-        if((N + 19) / 20 > 1){
-            if(pg == 0) mvprintw(LINES - 2, 26, "/  N for next page");
-            else mvprintw(LINES - 2, 26, "/  N for first page");
-        }
-        for (int i = 0; i < 6; i ++) mvprintw(9, loc[i], "%s", top[i]);
+        for (int i = 0; i < 5; i ++) mvprintw(i + 2 + kx, 15 + ky, lines[i]);
+        for (int i = 0; i < 6; i ++) mvprintw(9 + kx, loc[i] + ky, "%s", top[i]);
         scoreboard_sort_users();
         for (int i = 0; i < N - pg * 20 && i < 20; i ++){
             int id = pg * 20 + i;
             if(signed_in && users[id] == current_user) attron(A_BOLD);
             if(id < 3) attron(COLOR_PAIR(i + 1));
-            mvprintw(11 + i, 8, "%d", id + 1);
-            mvprintw(11 + i, (id < 3 ? 20 : 17), "%s", users[id] -> user_name);
-            mvprintw(11 + i, 34, "%d", users[id] -> total_score);
-            mvprintw(11 + i, 50, "%d", users[id] -> golds);
-            mvprintw(11 + i, 66, "%d", users[id] -> games_played);
-            mvprintw(11 + i, 82, "%d", (time(0) - users[id] -> birth) / 86400);
+            mvprintw(11 + i + kx, 8 + ky, "%d", id + 1);
+            mvprintw(11 + i + kx, (id < 3 ? 20 : 17) + ky, "%s", users[id] -> user_name);
+            mvprintw(11 + i + kx, 34 + ky, "%d", users[id] -> total_score);
+            mvprintw(11 + i + kx, 50 + ky, "%d", users[id] -> golds);
+            mvprintw(11 + i + kx, 66 + ky, "%d", users[id] -> games_played);
+            mvprintw(11 + i + kx, 82 + ky, "%d", (time(0) - users[id] -> birth) / 86400);
             if(id == 0){
-                mvprintw(11 + 0, 5, Ugold_medal);
-                mvprintw(11 + 0, 15, "GOAT-");
+                mvprintw(11 + 0 + kx, 5 + ky, Ugold_medal);
+                mvprintw(11 + 0 + kx, 15 + ky, "GOAT-");
             }
             if(id == 1){
-                mvprintw(11 + 1, 5, Usecond_medal);
-                mvprintw(11 + 1, 13, "LEGEND-");
+                mvprintw(11 + 1 + kx, 5 + ky, Usecond_medal);
+                mvprintw(11 + 1 + kx, 13 + ky, "LEGEND-");
             }
             if(id == 2){
-                mvprintw(11 + 2, 5, Uthird_medal);
-                mvprintw(11 + 2, 13, "MASTER-");
+                mvprintw(11 + 2 + kx, 5 + ky, Uthird_medal);
+                mvprintw(11 + 2 + kx, 13 + ky, "MASTER-");
             }
             if(id < 3) attroff(COLOR_PAIR(i + 1));
             if(signed_in && users[id] == current_user) attroff(A_BOLD);
         }
-        move(0, 0);
+        /////Messeges
+        mvprintw(LINES - 2, 4, "Press Enter to exit");
+        if((N + 19) / 20 > 1){
+            if(pg == 0) mvprintw(LINES - 2, 26, "/  N for next page");
+            else mvprintw(LINES - 2, 26, "/  N for first page");
+        }
         refresh();
         int get = getch();
         if(get == 'n' || get == 'N') pg = (pg + 1) % ((N + 19) / 20);
         if(get == 27 || get == '\n'){
-            main_menu();
             return;
         }
     }
@@ -610,6 +775,17 @@ void goldize(struct floor* floor, int T){
                 break;
             }
         }
+        if(T == 1){
+            for (int i = 0; i < 10; i ++){
+                while(1){
+                int gx = x0 + 1 + rand() % (x1 - x0 - 2);
+                int gy = y0 + 1 + rand() % (y1 - y0 - 2);
+                if(floor -> map[gx][gy] != '.') continue;
+                floor -> map[gx][gy] = 'G';
+                break;
+            }
+            }
+        }
     }
     return;
 }
@@ -623,6 +799,7 @@ void treasurize(struct floor * floor){
         int y = y0 + 1 + rand() % (y1 - y0 - 2);
         if(floor -> map[x][y] != '.') continue;
         if(floor -> map[x][y + 1] != '.') continue;
+        if(floor -> map[x][y - 1] != '.') continue;
         floor -> map[x][y] = 'T';
         break;
     }
@@ -695,6 +872,8 @@ void weaponize(struct game* game){
     while(1){
         int x = rand() % (ROW - 1), y = rand() % (COL - 1);
         if(floors -> map[x][y] != '.') continue;
+        if(floors -> map[x][y + 1] != '.') continue;
+        if(floors -> map[x][y - 1] != '.') continue;
         if(floors -> trap[x][y] == 1) continue;
         floors -> map[x][y] = 's';
         break;
@@ -747,7 +926,7 @@ void spellize(struct game* game){
         struct floor *floor = game -> floors[i];
         int x0 = floor -> rooms[2] -> x0, x1 = floor -> rooms[2] -> x1;
         int y0 = floor -> rooms[2] -> y0, y1 = floor -> rooms[2] -> y1;
-        for (int i = 0; i < 2; i ++){
+        for (int i = 0; i < 3; i ++){
             while(1){
                 int x = x0 + 1 + rand() % (x1 - x0 - 2);
                 int y = y0 + 1 + rand() % (y1 - y0 - 2);
@@ -756,7 +935,7 @@ void spellize(struct game* game){
                 break;
             }
         }
-        for (int i = 0; i < 2; i ++){
+        for (int i = 0; i < 3; i ++){
             while(1){
                 int x = x0 + 1 + rand() % (x1 - x0 - 2);
                 int y = y0 + 1 + rand() % (y1 - y0 - 2);
@@ -765,7 +944,7 @@ void spellize(struct game* game){
                 break;
             }
         }
-        for (int i = 0; i < 2; i ++){
+        for (int i = 0; i < 3; i ++){
             while(1){
                 int x = x0 + 1 + rand() % (x1 - x0 - 2);
                 int y = y0 + 1 + rand() % (y1 - y0 - 2);
@@ -786,11 +965,14 @@ void monsterize(struct floor* floor, int T){
         struct monster* monster = floor -> monsters[m];
         monster -> type = rand() % 5;
         monster -> act = 0;
+        monster -> steps = 5;
+        if(monster -> type == 3) monster -> steps = 10000;
         monster -> health = 5 * (monster -> type + 1) + (monster -> type == 4 ? 5 : 0);
         while(1){
             int x = rand() % (ROW - 1), y = rand() % (COL - 1);
             if(floor -> map[x][y] != '.') continue;
             if(floor -> trap[x][y] == 1) continue;
+            if(floor -> room_count > 1 && floor -> rooms[2] -> x0 <= x && x <= floor -> rooms[2] -> x1 && floor -> rooms[2] -> y0 <= y && y <= floor -> rooms[2] -> y1) continue;
             monster -> x = x;
             monster -> y = y;
             break;
@@ -843,7 +1025,7 @@ struct floor* new_floor(){
     floor -> vis = (int **) malloc((ROW + 10) * sizeof(int *));
     for (int i = 0; i < ROW; i ++){
         floor -> vis[i] = (int *) malloc((COL + 10) * sizeof(int));
-        for (int j = 0; j < COL; j ++) floor -> vis[i][j] = 0;
+        for (int j = 0; j < COL; j ++) floor -> vis[i][j] = 1;
     }
     ////STAIRS
     floor -> stair_x = floor -> rooms[1] -> x0 + rand() % 6 + 1;
@@ -926,13 +1108,80 @@ struct game* new_game(){
     game -> current_x = game -> floors[0] -> rooms[0] -> x0 + rand() % 6 + 1;
     game -> current_y = game -> floors[0] -> rooms[0] -> y0 + rand() % 6 + 1;
 
+    game -> golds = 0;
+    game -> score = 0;
+
     game -> health = 100;
     game -> hunger = 0;
     game -> food = 0;
+    game -> gfood = 0;
+    game -> mfood = 0;
 
     weaponize(game);
+    game -> health_s = 0;
+    game -> speed_s = 0;
+    game -> damage_s = 0;
     spellize(game);
     return game;
+}
+
+void setting_border(){
+    clear();
+    for (int i = 0; i < COLS; i += 2){
+        mvprintw(0, i, Usetting);
+        mvprintw(LINES - 1, i, Usetting);
+    }
+    for (int i = 0; i < LINES; i ++){
+        mvprintw(i, 0, Usetting);
+        mvprintw(i, COLS - 2, Usetting);
+    }
+    return;
+}
+
+void setting(){
+    int cr = 0, cl = 0, op = 3;
+    char titles[2][50] = {"DIFFICULTY:", "CHARACTER'S COLOR:"};
+    char options[2][10][50] ={ {"EASY", "MEDIUM", "HARD"},
+                               {"BLUE", "RED", "GREEN"} };
+    int deg[3] = {100, 10, 5}, d[2];
+    if(DEG == 100) d[0] = 0;
+    if(DEG == 10) d[0] = 1;
+    if(DEG == 5) d[0] = 2;
+    d[1] = C_COLOR;
+    while(1){
+        noecho();
+        clear();
+        setting_border();
+        int cnt = 30;
+        for (int c = 0; c < 2; c ++){
+            mvprintw(4, 5 + cnt * c, titles[c]);
+            mvprintw(LINES - 2, 4, "Press Q to exit");
+            for (int i = 0; i < op; i ++){
+                mvprintw(6 + i, 7 + cnt * c, options[c][i]);
+            }
+            attron(COLOR_PAIR(7));
+            mvprintw(6 + d[c], 15 + cnt * c, "✔");
+            attroff(COLOR_PAIR(7));
+        }
+        for (int i = 0; i < op; i ++){
+            if(cr == i){
+                attron(A_REVERSE);
+                mvprintw(6 + i, 7 + cnt * cl, options[cl][i]);
+                attroff(A_REVERSE);
+            }
+        }
+        refresh();
+        int get = getch();
+        if(get == KEY_UP) cr = (cr + op - 1) % op;
+        else if(get == KEY_DOWN) cr = (cr + 1) % op;
+        if(get == '\n'){
+            d[cl] = cr;
+        }
+        if(get == KEY_RIGHT|| get == KEY_LEFT) cl = (cl + 1) % 2;
+        DEG = deg[d[0]];
+        C_COLOR = d[1];
+        if(get == 'Q') return;
+    }
 }
 
 void game_menu(){
@@ -943,7 +1192,7 @@ void game_menu(){
         clear();
         menu_border();
         mvprintw(4, 5, "GAME MENU:");
-        mvprintw(LINES - 2, 4, "Press Esc to exit");
+        mvprintw(LINES - 2, 4, "Press Q to exit");
         for (int i = 0; i < op; i ++){
             mvprintw(5 + i, 7, options[i]);
         }
@@ -971,7 +1220,7 @@ void game_menu(){
                     }
                     if(res == 1){
                         current_user -> golds += game -> golds;
-                        current_user -> total_score += 0;//////
+                        current_user -> total_score += game -> score;
                     }
                 }
             } 
@@ -994,15 +1243,14 @@ void game_menu(){
                 }
                 if(res == 1){
                     current_user -> golds += game -> golds;
-                    current_user -> total_score += 0;//////
+                    current_user -> total_score += game -> score;
                 }
             }
             if(cr == 2){
-                game_menu();
+                setting();
             }
         }
-        else if(get == 27){
-            main_menu();
+        else if(get == 'Q'){
             return;
         }
     }
