@@ -20,6 +20,7 @@ const char* Ugold_medal = "\U0001F947";
 const char* Usecond_medal = "\U0001F948";
 const char* Uthird_medal = "\U0001F949";
 
+const char* Usetting = "🔧";
 const char* Udiamond = "\U0001F48E";
 const char* Umoney = "\U0001F4B0";
 const char* Ugold = "\u25c7";
@@ -28,8 +29,6 @@ const char* Ubgold = "\u25CB";
 const char* Umorgh = "🍗";
 const char* Uburger = "🍔";
 const char* Umeat = "🍖";
-
-const char* Usetting = "🔧";
 
 const char* Umace = "🔨";
 const char* Uwand = "𓐩";
@@ -43,11 +42,9 @@ const char* Uarrow = "\U000027B3";// ➳
 //2: spellroom
 
 pid_t pid;
-int music = 0, spell_music;
+int music = 0, spell_music = 0;
 int message = -1;
-int sp = 0;
-int dm = 0;
-
+int sp = 0, dm = 0;
 
 char mes[20][300] = {
                     "You just killed a Deamon",
@@ -55,15 +52,22 @@ char mes[20][300] = {
                     "You just killed a Giant",
                     "You just killed a Snake",
                     "You just killed an Undeed",
+
                     "You got the Sword",
                     "You got 10 Daggers",
                     "You got 8 Wands",
                     "You got 20 Arrows",
+
                     "You got 5 golds",
-                    "you got 100 golds",
-                    "you got a Health Spell",
-                    "you got a Speed Spell",
-                    "you got a Damage Spell"
+                    "You got 100 golds",
+
+                    "You got a Health Spell",
+                    "You got a Speed Spell",
+                    "You got a Damage Spell",
+
+                    "Oh, there was a trap",
+                    "Welcome to Enchant Room",
+                    "Press g for some help"
                     };
 
 struct Room{
@@ -108,28 +112,3 @@ struct game{
 
     int health_s, speed_s, damage_s;
 };
-
-
-/*
-          |ˉ|
- _________| |------------------\
-| | | | |   |-------------------〉
- `^^^^^^^^| |------------------⁄
-          |ˍ|
-
- 
-         |ˉˉ|______________
-|ˉ|------|  |______________\
-|ˍ|------|  |______________/
-         |ˍˍ|
- 
-        ☆
-      ☆ ★ ☆
-     ˍ  ☆        
-    // 
-   //
-  //
- //
-//
-ˉ
-*/

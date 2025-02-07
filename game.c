@@ -321,17 +321,6 @@ void update(struct game* game){
         if(0 <= y + j && y + j < COL && (ch == '#' || ch == '+')) floor -> vis[x][y + j] = 1;
         else break;
     }
-    ////CHECKGOLD
-    if(floor -> map[x][y] == 'g'){
-        floor -> map[x][y] = floor -> mp[x][y];
-        game -> golds += 5;
-        message = 9;
-    }
-    if(floor -> map[x][y] == 'G'){
-        floor -> map[x][y] = floor -> mp[x][y];
-        game -> golds += 100;
-        message = 10;
-    }
     ////CHECKFOOD
     if(floor -> map[x][y] == 'f' && game -> food < 5){
         floor -> map[x][y] = floor -> mp[x][y];
@@ -363,16 +352,33 @@ void update(struct game* game){
         game -> mfood ++;
         foodize(floor, 1);
     }
+    ///CHECKSPELLROOM
+    if(level != 5){
+        int x0 = floor -> rooms[2] -> x0, x1 = floor -> rooms[2] -> x1;
+        int y0 = floor -> rooms[2] -> y0, y1 = floor -> rooms[2] -> y1;
+        if(x0 <= x && x1 && y0 <= y && y <= y1){
+            game -> health -= 1;
+        }
+        if(x0 <= x && x <= x1 && y0 <= y && y <= y1){
+            message = 15;
+        }
+    }
+    ////CHECKGOLD
+    if(floor -> map[x][y] == 'g'){
+        floor -> map[x][y] = floor -> mp[x][y];
+        game -> golds += 5;
+        message = 9;
+    }
+    if(floor -> map[x][y] == 'G'){
+        floor -> map[x][y] = floor -> mp[x][y];
+        game -> golds += 100;
+        message = 10;
+    }
     ////CHECKTRAP
     if(floor -> trap[x][y] == 1){
         floor -> map[x][y] = '^';
         game -> health -= 5;
-    }
-    ///CHECKSPELLROOM
-    if(level != 5){
-        if(floor -> rooms[2] -> x0 <= x && x <= floor -> rooms[2] -> x1 && floor -> rooms[2] -> y0 <= y && y <= floor -> rooms[2] -> y1){
-            game -> health -= 1;
-        }
+        message = 14;
     }
     ///MONSTER MOVES
     for (int m = 0; m < floor -> monster_count; m ++){
@@ -400,13 +406,22 @@ void update(struct game* game){
                 monster -> steps --;
             }
             else if(monster_move_check(game, m, 1)){
-                monster -> y += monster -> y < y ? 1 : -1;;
+                monster -> y += monster -> y < y ? 1 : -1;
                 monster -> steps --;
             }
             else if(monster_move_check(game, m, 0)){
                 monster -> x += monster -> x < x ? 1 : -1;
                 monster -> steps --;
             }
+        }
+    }
+    ///MONSTER DAMAGE
+    for (int m = 0; m < floor -> monster_count; m ++){
+        struct monster* monster = floor -> monsters[m];
+        int xm = monster -> x, ym = monster -> y;
+        if(monster -> act != 1) continue;
+        if(abs(xm - x) <= 1 && abs(ym - y) <= 1){
+            game -> health -= monster -> type + 1;
         }
     }
     return;
@@ -511,6 +526,9 @@ void spellroom(struct game* game, char** to){
     int x0 = floor -> rooms[2] -> x0, x1 = floor -> rooms[2] -> x1;
     int y0 = floor -> rooms[2] -> y0, y1 = floor -> rooms[2] -> y1;
     int kx = (LINES - ROW) / 2, ky = (COLS - COL) / 2;
+    if(x0 <= x && x <= x1 && y0 <= y && y <= y1 && !spell_music){
+        message = 15;
+    }
     for (int x = x0; x <= x1; x ++){
         for (int y = y0; y <= y1; y ++){
             if(to[x][y] != '.' && to[x][y] != '-' && to[x][y] != '|' && to[x][y] != '+') continue;
@@ -745,7 +763,7 @@ void spell_menu(struct game* game){
         if(get == '\n'){
             if(cr == 0){
                 if(game -> health_s > 0){
-                    game -> health = 200;
+                    game -> health = 100;
                     game -> health_s --;
                 }
             }
@@ -762,6 +780,77 @@ void spell_menu(struct game* game){
                 }
             }
         }
+    }
+    return;
+}
+
+void guide_border(){
+    clear();
+    for (int i = 0; i < COLS; i ++){
+        mvprintw(0, i, "?");
+        mvprintw(LINES - 1, i, "?");
+    }
+    for (int i = 0; i < LINES; i ++){
+        mvprintw(i, 0, "?");
+        mvprintw(i, COLS - 1, "?");
+    }
+}
+
+void guide_menu(){
+    char guide[35][200] = {
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⣀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⡴⣾⢻⣻⠭⠓⠻⠀⠀⠀⠀⠀⠈⠉⠉⠛⠛⠒⠦⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⠖⠛⣿⣾⣓⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠶⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣴⡾⠿⠒⠚⠋⠉⠉⠉⠉⠉⠉⠉⠉⠛⠒⠶⠦⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠳⣤⡀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⢀⣠⠾⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠓⠶⣄⡀⠀⠀⠀⣤⣀⣄⣰⣄⡿⢸⠏⡿⣆⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⢀⣴⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢦⣼⣿⢏⡼⢻⠏⡼⢣⡿⣾⣱⠉⣷⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⣰⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣄⣜⣷⣟⣨⠏⣴⣃⡞⣹⣇⡟⣴⢋⣧⠀⠀⠀",
+        "⠀⠀⠀⣼⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡽⢻⣍⠑⣿⣏⣴⢁⡞⢱⠏⡾⣱⢏⡾⣸⡇⠀⠀",
+        "⠀⠀⣼⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣭⡾⣋⡽⡃⠈⠫⣿⠞⢰⡇⡼⢡⡿⣿⣡⢯⣷⠀⠀",
+        "⠀⢰⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢻⡟⢉⡶⢛⣀⠀⠺⣿⠋⡜⢃⣞⣿⣻⢋⣾⣽⠀⠀",
+        "⢀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢴⣾⣯⣞⣯⡧⠀⠀⢸⡾⢡⣾⡿⣿⠃⡾⣽⡟⠀⠀",
+        "⢸⡿⢀⣇⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣻⢻⠟⣷⡶⢤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠋⠙⢻⣿⡇⠀⠀⠸⣧⣞⡽⣷⢋⡾⣹⣻⠃⠀⠀",
+        "⢸⡇⢸⡁⣿⣷⢶⣶⣤⣀⡀⠀⠀⠀⣼⣿⣯⣿⣿⠞⠉⠀⠈⢳⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠃⠀⠀⢠⣿⡞⣳⣯⠞⣠⣿⠃⠀⠀⠀",
+        "⠀⠻⠾⣧⣿⣿⣼⣼⣿⣥⣷⣀⣀⣀⣿⣿⠞⠁⠀⠀⠀⠀⠀⢸⡇⢠⣿⣶⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⠏⣰⣧⡟⣴⡿⠃⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠷⠚⣿⡞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⡼⣣⣏⡴⠋⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠾⠃⠀⠀⢹⣥⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⠞⣱⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡴⠊⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣿⣿⠞⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠴⠚⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⡾⣿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣴⣾⢛⡟⡽⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⢾⡟⣿⣻⢃⡞⣹⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⢿⢧⡎⣴⣷⠃⡞⣹⢻⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣱⣷⢯⡏⣰⣷⠏⡾⣰⢷⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣿⣿⣿⢷⡏⣰⣿⣏⡾⣡⣿⠿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⢦⣀⠀⠀⠀⠀⠀⠀⠀⠀⡠⢿⣿⣿⡟⣰⢿⡏⣿⣷⣟⣁⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣾⣼⣿⣓⠂⠀⠀⠀⠀⠀⢠⣽⣭⣽⣿⣿⣻⣿⣿⢿⣿⣿⡿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢈⣿⣿⣿⣿⣷⣿⣷⣶⣾⣷⣶⣼⣿⣿⣿⣾⣿⣿⠛⣿⣸⢻⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⡾⠿⠽⢿⣉⣷⣿⣉⣵⣖⣫⣿⣻⡿⠗⣫⡿⢻⣇⡿⣴⢣⠇⣸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣷⠀⠀⠀⠀⠀⠀⠈⠉⠙⢿⣿⣿⣩⣿⡽⢁⡞⡽⣳⠋⡟⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣗⣺⣿⠃⡼⣻⢧⡟⣼⠁⣏⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣶⣿⣸⢣⡇⡞⢱⠃⣾⡼⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⢸⢣⡞⢸⢣⡏⡼⣿⣵⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⡇⢰⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡼⢡⣏⡾⣶⣵⡿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⢸⢿⣦⣦⣤⢀⠀⠀⠀⠀⠀⠀⠀⢸⢃⡞⣼⣵⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠻⣿⣍⣹⣹⣙⣟⡝⣇⠧⠀⠀⠀⠀⠘⣿⣿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠉⠓⠒⠒⠒⠒⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"};
+
+
+    while(1){
+        clear();
+        guide_border();
+        for (int i = 0; i < 35; i ++){
+            mvprintw(LINES / 2 - 18 + i, COLS / 2 - 10, guide[i]);
+        }
+        mvprintw(LINES / 2 - 8, 5, "t -> To take weapon/spell");
+        mvprintw(LINES / 2 - 6, 5, "Q -> To Quit");
+        mvprintw(LINES / 2 - 4, 5, "E -> Food Menu");
+        mvprintw(LINES / 2 - 2, 5, "i -> Weapon Menu");
+        mvprintw(LINES / 2, 5, "s -> Spell Menu");
+        mvprintw(LINES / 2 + 2, 5, "m -> Music Menu");
+        mvprintw(LINES / 2 + 4, 5, "g -> Guide Menu :)");
+        refresh();
+        int get = getch();
+        if(get == 'Q') return;
     }
     return;
 }
@@ -1151,6 +1240,9 @@ int game_play_t(struct game* game){
                 while(move_char(game, e));
             }
         }
+        if(e == 'g'){
+            guide_menu();
+        }
         if(e == 'E'){
             food_menu(game);
         }
@@ -1167,6 +1259,9 @@ int game_play_t(struct game* game){
             get_weapon(game);
             get_spell(game);
         }
+        if(e == ' '){
+            shoot(game);
+        }
         if(e == 'Q'){
             return -1;
         }
@@ -1182,6 +1277,7 @@ int game_play(struct game* game){
     if(game -> current_level == 5) return game_play_t(game);
     int kx = (LINES - ROW) / 2, ky = (COLS - COL) / 2;
     update(game);
+    message = 16;
     while (1){
         if(game -> health <= 0){
             end_game_lose(game);
@@ -1272,9 +1368,15 @@ int game_play(struct game* game){
             }
         }
         ////// information:
-        mvprintw(1, 3, "LEVEL: %d", game -> current_level + 1);
-        mvprintw(1, 18, "GOLDS: %d", game -> golds);
-        mvprintw(1, 33, "HEALTH: %d", game -> health);
+        mvprintw(1, 13 + (COLS - COL) / 2, "LEVEL: %d", game -> current_level + 1);
+        mvprintw(1, 28 + (COLS - COL) / 2, "Score: %d", game -> score);
+        mvprintw(1, 43 + (COLS - COL) / 2, "GOLDS: %d", game -> golds);
+        mvprintw(1, 58 + (COLS - COL) / 2, "HEALTH:");
+        for (int i = 0; i < game -> health / 5; i ++){
+            //attron(COLOR_PAIR(5));
+            mvprintw(1, 66 + i + (COLS - COL) / 2, "▋");
+            //attroff(COLOR_PAIR(5));
+        }
         refresh();
         ////LOKED KEYS
         int e = getch();
@@ -1285,6 +1387,9 @@ int game_play(struct game* game){
         //// KEYS
         if(e == '~'){
             return game_play_t(game);
+        }
+        if(e == 'g'){
+            guide_menu();
         }
         if(e == 'E'){
             food_menu(game);

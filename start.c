@@ -63,7 +63,7 @@ int main(){
     define_colors();
 
     ///// 🏆  🏹
-    
+
     read_users();
     main_menu();
     endwin();
@@ -76,8 +76,8 @@ void define_colors(){
     init_pair(2, 248, COLOR_BLACK); //Silver 248
     init_pair(3, 131, COLOR_BLACK); //Bronze! 131
     init_pair(4, 147, COLOR_BLACK); //light purple
-    init_pair(5, COLOR_BLACK, COLOR_WHITE); //inwhite
-    init_pair(6, COLOR_BLACK, COLOR_RED); //inred
+    init_pair(5, COLOR_BLACK, COLOR_WHITE); //in-white
+    init_pair(6, COLOR_BLACK, COLOR_RED); //in-red
     init_pair(7, COLOR_GREEN, COLOR_BLACK);//green
     init_pair(8, 128, COLOR_BLACK); //purple
     init_pair(9, 227, COLOR_BLACK); //yellow
@@ -288,7 +288,7 @@ void menu_border(){
 }
 
 void main_menu(){
-    char options[6][20] = {"SIGN UP", "SIGN IN", "PROFILE", "SCOREBOARD", "MUSIC MENU", "PLAY"};
+    char options[6][20] = {"SIGN UP", "SIGN IN/OUT", "PROFILE", "SCOREBOARD", "MUSIC MENU", "PLAY"};
     int cr = 0;
     noecho();
     while(1){
@@ -312,6 +312,7 @@ void main_menu(){
         else if(get == '\n'){
             if(cr == 0) sign_up();
             if(cr == 1) sign_in();
+
             if(cr == 2) profile();
             if(cr == 3) scoreboard();
             if(cr == 4) music_menu();
@@ -478,9 +479,10 @@ void sign_in(){
     refresh();
     if(signed_in == 1){
         menu_border();
-        mvprintw(5, 5, "You are already signed in!");
+        mvprintw(5, 5, "Press x to Log Out");
         mvprintw(LINES - 2, 4, "Press any key to exit");
-        getch();
+        int get = getch();
+        if(get == 'x') signed_in = 0;
         return;
     }
     while(1){
@@ -546,6 +548,7 @@ void profile(){
         mvprintw(8, 5, "My score:");
         mvprintw(9, 5, "My golds:");
         mvprintw(10, 5, "My experience:");
+        mvprintw(11, 5, "Games played:");
 
         mvprintw(5, 22, "%s", current_user -> user_name);
         mvprintw(6, 22, "%s", current_user -> email);
@@ -553,6 +556,7 @@ void profile(){
         mvprintw(8, 22, "%d", current_user -> total_score);
         mvprintw(9, 22, "%d", current_user -> golds);
         mvprintw(10, 22, "%d m", (time(0) - current_user -> birth) / 60);
+        mvprintw(11, 22, "%d", current_user -> games_played);
         mvprintw(LINES - 2, 4, "Press Enter to exit");
         refresh();
         if(getch() == '\n'){
@@ -635,13 +639,6 @@ void scoreboard(){
 }
 
 
-/*
-"    ****     *       *   *    ****        *
-"   *        * *     * * * *   *        *   *
-"   *   **  * * *   *   *   *  ****         *
-"   *   *  *     *  *       *  *        *   *
-"    ****  *     *  *       *  ****        * 
-*/
 
 
 struct Room* new_room(){
