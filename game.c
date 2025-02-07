@@ -4,15 +4,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-#include "abcd.c"
+#include "knxjkal.c"
 
 #include "locale.h"
 #include <unistd.h>
 #include <signal.h>
 
-int move_char(struct game* game, char e);
 void update(struct game* game);
-char ** draw(struct game* game);
 
 void music_border(){
     clear();
@@ -65,7 +63,7 @@ void music_menu(){
             mvprintw(i + 3 + (LINES - ROW) / 2, 22 + (COLS - COL) / 2, graph[i]);
         }
         mvprintw(4, 5, "CHOOSE A MUSIC:");
-        mvprintw(LINES - 2, 4, "Press Q to exit");
+        mvprintw(LINES - 2, 4, "Press m to exit");
         for (int i = 0; i < op; i ++){
             mvprintw(6 + i, 7, options[i]);
         }
@@ -95,7 +93,7 @@ void music_menu(){
                 }
             }
         }
-        if(get == 'Q') return;
+        if(get == 'Q' || get == 'm') return;
     }
     return;
 }
@@ -223,18 +221,19 @@ void food_menu(struct game* game){
         mvprintw(25 + kx, kdjlsj + 13 + ky, "EAT Magic FOOD");
         if(cr == 2) attroff(COLOR_PAIR(5));
 
-        mvprintw(LINES - 2, 4, "Press Q to exit");
+        mvprintw(LINES - 2, 4, "Press E to exit");
         refresh();
         ////KEYS
         int get = getch();
-        if(get == 'Q') break;
-        if((get == 'e' || get == '\n') && game -> food){
-            if(cr == 0){
+        if(get == 'Q' || get == 'E') break;
+        if((get == 'e' || get == '\n')){
+            if(cr == 0 && game -> food){
                 game -> food --;
                 if(rand() % 10 == 0){
                     if(game -> hunger >= DEG) game -> hunger += DEG;
                     game -> health -= DEG * 2;
                     if(game -> health > 100) game -> health = 100;
+                    if(game -> health < 0) game -> health = 0;
                 }
                 else{
                     if(game -> hunger >= DEG) game -> hunger -= DEG;
@@ -242,17 +241,17 @@ void food_menu(struct game* game){
                     if(game -> health > 100) game -> health = 100;
                 }
             }
-            if(cr == 1){
+            if(cr == 1 && game -> gfood){
                 game -> gfood --;
-                if(game -> hunger >= DEG) game -> hunger += DEG;
-                game -> health -= DEG * 2;
+                if(game -> hunger >= DEG) game -> hunger -= DEG;
+                game -> health += DEG * 2;
                 if(game -> health > 100) game -> health = 100;
                 dm += 10;
             }
-            if(cr == 2){
+            if(cr == 2 && game -> mfood){
                 game -> mfood --;
-                if(game -> hunger >= DEG) game -> hunger += DEG;
-                game -> health -= DEG * 2;
+                if(game -> hunger >= DEG) game -> hunger -= DEG;
+                game -> health += DEG * 2;
                 if(game -> health > 100) game -> health = 100;
                 sp += 10;
             }
@@ -660,7 +659,7 @@ void weapon_menu(struct game* game){
         refresh();
         ////KEYS
         int get = getch();
-        if(get == 'i') return;
+        if(get == 'Q' || get == 'i') return;
         if(get == KEY_RIGHT && page != 4) page ++;
         if(get == KEY_LEFT && page != 0) page --;
         if(get == '\n'){
@@ -740,7 +739,7 @@ void spell_menu(struct game* game){
         refresh();
         ////KEYS
         int get = getch();
-        if(get == 's') return;
+        if(get == 'Q' || get == 's') return;
         if(get == KEY_UP) cr = (cr + 2) % 3;
         if(get == KEY_DOWN) cr = (cr + 1) % 3;
         if(get == '\n'){
@@ -1034,6 +1033,11 @@ int all_monsters_killed(struct game* game){
 }
 
 int game_play_t(struct game* game){
+    char blabla[3][100] = {
+        "       ,,,",
+        "      (o o)",
+        "--oOO--( )--OOo--"};
+
     int kx = (LINES - ROW) / 2, ky = (COLS - COL) / 2;
     game -> current_level = 5;
     game -> current_x = ROW / 2;
@@ -1051,6 +1055,12 @@ int game_play_t(struct game* game){
         clear();
         noecho();
         char **to = draw(game);
+        if(message != -1){
+            mvprintw(LINES - 4, 12, mes[message]);
+            for (int i = 0; i < 3; i ++){
+                mvprintw(LINES - 3 + i, 0, blabla[i]);
+            }
+        }
         for (int i = 0; i < ROW; i ++){
             for (int j = 0; j < COL; j ++){
                 ///golds
@@ -1120,9 +1130,10 @@ int game_play_t(struct game* game){
             }
         }
         /////INFO
-        mvprintw(LINES - 1, 3, "LEVEL: FINAL");
-        mvprintw(LINES - 1, 21, "GOLDS: %d", game -> golds);
-        mvprintw(LINES - 1, 36, "HEALTH: %d", game -> health);
+        mvprintw(1, 3, "LEVEL: FINAL");
+        mvprintw(1, 21, "GOLDS: %d", game -> golds);
+        mvprintw(1, 36, "HEALTH: %d", game -> health);
+
         mvprintw(2 + kx, COL / 2 - 8 + ky, "💎 TREASURE ROOM 💎");
         refresh();
         ////KEYS
@@ -1163,6 +1174,11 @@ int game_play_t(struct game* game){
 }
 
 int game_play(struct game* game){
+    char blabla[3][100] = {
+        "       ,,,",
+        "      (o o)",
+        "--oOO--( )--OOo--"};
+
     if(game -> current_level == 5) return game_play_t(game);
     int kx = (LINES - ROW) / 2, ky = (COLS - COL) / 2;
     update(game);
@@ -1174,7 +1190,12 @@ int game_play(struct game* game){
         clear();
         noecho();
         char **to = draw(game);
-        if(message != -1) mvprintw(0, 0, mes[message]);
+        if(message != -1){
+            mvprintw(LINES - 4, 12, mes[message]);
+            for (int i = 0; i < 3; i ++){
+                mvprintw(LINES - 3 + i, 0, blabla[i]);
+            }
+        }
         for (int i = 0; i < ROW; i ++){
             for (int j = 0; j < COL; j ++){
                 mvprintw(i + kx, j + ky, "%c", to[i][j]);
@@ -1251,9 +1272,9 @@ int game_play(struct game* game){
             }
         }
         ////// information:
-        mvprintw(LINES - 1, 3, "LEVEL: %d", game -> current_level + 1);
-        mvprintw(LINES - 1, 18, "GOLDS: %d", game -> golds);
-        mvprintw(LINES - 1, 33, "HEALTH: %d", game -> health);
+        mvprintw(1, 3, "LEVEL: %d", game -> current_level + 1);
+        mvprintw(1, 18, "GOLDS: %d", game -> golds);
+        mvprintw(1, 33, "HEALTH: %d", game -> health);
         refresh();
         ////LOKED KEYS
         int e = getch();

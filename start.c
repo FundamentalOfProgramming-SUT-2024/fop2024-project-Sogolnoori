@@ -62,17 +62,8 @@ int main(){
     start_color();
     define_colors();
 
-    // while(1){
-    //     for (int i = 0; i < 10; i ++){
-    //         for (int j = 0; j < 10; j ++){
-    //             mvprintw(i + 10, j + 10, ".");
-    //         }
-    //     }
-    //     mvprintw(15, 15, "🥩");
-    //     getch();
-    // }
-
     ///// 🏆  🏹
+    
     read_users();
     main_menu();
     endwin();
@@ -587,7 +578,7 @@ void scoreboard_sort_users(){
 void scoreboard(){
     clear();
     refresh();
-    int kx = (LINES - ROW) / 2, ky = (COLS - COL) / 2;
+    int kx = (LINES - ROW) / 2 - 5, ky = (COLS - COL) / 2;
     char lines[5][100] = {"***   ***    ***   ***   ****  ****    ***     **    ***   ****",
                           "*    *   *  *   *  *  *  *     *   *  *   *   *  *   *  *  *   *",
                           "***  *      *   *  ***   ****  ****   *   *  ******  ***   *   *", 
@@ -1025,7 +1016,7 @@ struct floor* new_floor(){
     floor -> vis = (int **) malloc((ROW + 10) * sizeof(int *));
     for (int i = 0; i < ROW; i ++){
         floor -> vis[i] = (int *) malloc((COL + 10) * sizeof(int));
-        for (int j = 0; j < COL; j ++) floor -> vis[i][j] = 1;
+        for (int j = 0; j < COL; j ++) floor -> vis[i][j] = 0;
     }
     ////STAIRS
     floor -> stair_x = floor -> rooms[1] -> x0 + rand() % 6 + 1;
@@ -1185,12 +1176,21 @@ void setting(){
 }
 
 void game_menu(){
+     char blabla[3][100] = {
+        "       ,,,",
+        "      (o o)",
+        "--oOO--( )--OOo--"};
     clear();
     int cr = 0, op = 3;
     char options[10][50] = {"New game", "Continue previous game", "Settings"};
     while(1){
         clear();
-        menu_border();
+        //menu_border();
+        for (int i = 0; i < 3; i ++){
+            mvprintw(LINES - 3 + i, COLS - 20, blabla[i]);
+        }
+        mvprintw(LINES - 6, COLS - 30, "Hi, i'm Tuby");
+        mvprintw(LINES - 5, COLS - 35, "i'm here to help you :)");
         mvprintw(4, 5, "GAME MENU:");
         mvprintw(LINES - 2, 4, "Press Q to exit");
         for (int i = 0; i < op; i ++){
@@ -1203,7 +1203,6 @@ void game_menu(){
                 attroff(A_REVERSE);
             }
         }
-        move(0, 0);
         int get = getch();
         if(get == KEY_UP) cr = (cr + op - 1) % op;
         else if(get == KEY_DOWN) cr = (cr + 1) % op;
